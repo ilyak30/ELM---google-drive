@@ -400,7 +400,8 @@ function onOpen(e){
   var menuItems = [{name: "Update Notes Desc", functionName: "update_allnotes"}];
   SpreadsheetApp.getActive().addMenu("ELM Menu", menuItems);
   update_allnotes();
-//  addstat();
+  // Didn't run it when spreadsheet is permanently opened. The time-based trigger was activated.
+//  addstat(); 
   facebook_date_colorizer();
 }
 //function onEdit(e){
