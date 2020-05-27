@@ -1,4 +1,11 @@
 // Globals
+// =VLOOKUP(A55,RatesCopy!A:G,6,0)
+// =INDEX(RatesCopy!F:F, MATCH(A4, RatesCopy!A:A, 0), 1)
+// =COUNTIF(C5:C, "Available")
+// ='All Current'!A5
+// ='All Current'!B5
+
+// "#ERROR!" , "#NUM!" , "#NAME?"
 
 var RC = 0; // index of "RatesCopy" in sheet_names[] array
 var PR = 1; // "Private Rooms"
@@ -30,6 +37,62 @@ for(var sheet_id=0; sheet_id<numOfSheets; ++sheet_id) {
 
 //Logger.log("sheets_data[0][5][0].Values is " + sheets_data[0][5][0]);
 //Logger.log("sheets_data[0][5][1].Values is " + sheets_data[0][5][1]);
+
+function adjustUI() {
+// "All Current"
+// "Unit Information"
+  var srcAllCur_sn = 'All Current';
+  var srcUI_sn = 'Unit Information';
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet(); // ss - spread sheet
+  
+  var ssAllCur = ss.getSheetByName(srcAllCur_sn);
+  var ssUI = ss.getSheetByName(srcUI_sn);
+  
+  var ssAllCurStartRow = 1;
+  var ssAllCurLastRow = ssAllCur.getLastRow();
+  var ssAllCurStartCol = 1;
+  var ssAllCurLastCol = ssAllCur.getLastColumn();
+  var arrAllCur = ssAllCur.getRange(ssAllCurStartRow, ssAllCurStartCol, ssAllCurLastRow , ssAllCurLastCol).getValues();
+  
+  var ssUIStartCol = 1;
+  var ssUILastRow = ssUI.getLastRow();
+  var ssUIStartCol = 1;
+  var ssUILastCol = ssUI.getLastColumn();
+  var arrUI = ssUI.getRange(ssUIStartCol, ssUIStartCol, ssUILastRow , ssUILastCol).getValues();
+  
+  // Logger.log('arrPTasks : ssPTasksLastRow = ' + ssPTasksLastRow + ': ssPTasksLastColumn = ' + ssPTasksLastColumn + '\n');
+  
+  for (var row_i = 2; row_i < ssUILastCol; row_i++ ) {  // ssUILastCol = 116
+    UIName = arrUI[row_i][0].trim();
+
+    for (var col_j = 1; col_j < ssUILastCol; col_j++ ) {  // ssUILastColumn = 87
+      
+      UIName = arrUI[1][col_j].trim();               // var colProjName = 0; // column with projects name 
+      valCellException = arrUI[row_i][col_j].trim();
+     
+        for (var rowPT_x = 1; rowPT_x < arrPTasks.length ; rowPT_x++ ) {
+          PTaskNameFromArray = arrPTasks[rowPT_x][2].trim();
+          posName = PTaskNameFromArray.indexOf(composedPTaskName);
+
+          if  (  posName == 0 ) {
+              arrPTasks[rowPT_x][12] = "_delete_;";
+            arrPTasks.splice(rowPT_x , 1); // Removes the 1 element of arrPTasks from rowPT_x position
+              cntDeletedPTasks++;
+              arrUI[row_i][col_j] = "N/A_del_";
+          } else {
+            arrUI[row_i][col_j] = "N/A_chk_";
+          }
+        } // end 3rd for
+
+      } // end 2nd for
+  } // end 1st for  
+  
+  
+  ssfinalPTCreated.getRange(1, 1, arrPTasks.length, arrPTasks[0].length).setValues(arrPTasks); 
+  ssUI.getRange(1, 1, arrUI.length, arrUI[10].length).setValues(arrUI);
+  
+}  
 
 function toR1C1str(reference) {
   var range = SpreadsheetApp.getActiveSheet().getRange(reference);
@@ -111,9 +174,9 @@ function facebook_date_colorizer() {
   for(var r=0; r<fb_sheet_data.length; ++r) {
     for(var c=0; c<fb_sheet_data[r].length; ++c) {
       if(fb_sheet_data[r][c] != "") {
-        var strdate = fb_sheet_data[r][c].substring(1 + fb_sheet_data[r][c].lastIndexOf(" "));
-        var cellday   = pad(parseInt(strdate.substring(0, strdate.indexOf("."))), 2);
-        var cellmonth = pad(parseInt(strdate.substring(strdate.indexOf(".")+1)), 2);
+        var strdate = fb_sheet_data[r][c].toString().substring(1 + fb_sheet_data[r][c].toString().lastIndexOf(" "));
+        var cellday   = pad(parseInt(strdate.toString().substring(0, strdate.indexOf("."))), 2);
+        var cellmonth = pad(parseInt(strdate.toString().substring(strdate.indexOf(".")+1)), 2);
         var celldate = new Date(now.getYear().toString() + "-" + cellmonth + "-" + cellday);
         var diff_in_days = Math.floor((now - celldate)/(24*3600*1000));
         //Logger.log([fb_sheet_data[r][c], r, c, strdate, celldate, diff_in_days]);
@@ -131,7 +194,144 @@ function facebook_date_colorizer() {
   }
 }
 
+function fillRatesCopySheet() {
+  // PC	        A + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "A" & E1 & ":" & "A")
+  // Rate	    E2+ E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" &  E2 & E1 & ":" & E2)
+  // People	    I + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "I" & E1 & ":" & "I")
+  // Actual MO	E + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "E" & E1 & ":" & "E")
+  // EOL Date	F + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "F" & E1 & ":" & "F")
+  // Unit	    H + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "H" & E1 & ":" & "H")
+  // Type       B + E1  =importrange("1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "B" & E1 & ":" & "B")
+  // 						
+// 1A96G	470	   1		       18/06/2020	Occupied	1BR
+//  =importrange("https://docs.google.com/spreadsheets/d/1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg", B2 & B1 & "!" & "A" & E1 & ":" & "A")
+// Year= B1	20		    StartRow=E1	3
+// Month=B2	April		CyanColumn=E2	P
+  var endSourceRow = 300;
+  var endSourceCol = 7;   // G
+  
+  var startTargetRow = 5;
+  var startTargetCol = 1; // A
+  var endTargetCol = 7;   // G
+  var numRows = endTargetRow - startTargetRow + 1;
+  var numColumns = endTargetCol - startTargetCol + 1;
+  
+  var sourceSSdocID = '1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg';
+  var sourceSheetName = ''; 
+  var targetSheetName = "RatesCopy";
+  
+  var ssTarget = SpreadsheetApp.getActiveSpreadsheet();
+  var targetSheet = ssTarget.getSheetByName(targetSheetName);
+  var targetRangeSourceInfo = targetSheet.getRange("A1:F2").getValues(); 
+  
+  sourceSheetName = targetRangeSourceInfo[1][1].toString() + targetRangeSourceInfo[0][1].toString(); "April"+"20"
+  var startSourceCol = [0]; // A
+  
+  var startSourceRow = targetRangeSourceInfo[0][4];  // "3"
+  var endTargetRow = endSourceRow + startTargetRow - startSourceRow;
+  
+  var sourceOfRatesCol = targetRangeSourceInfo[1][4].toString(); // "P"
+  var startSourceCol = ["A",sourceOfRatesCol,"I","E","F","H","B"]; // A
+  var arrSizeSourceCol = startSourceCol.length;
+  
+  
+  var ssSource = SpreadsheetApp.openById(sourceSSdocID); // getActiveSpreadsheet();
+  var sourceSheet = ssSource.getSheetByName(sourceSheetName); 
+//  var sourceSheet = ssSource.getSheetByName("April20"); 
+  Logger.log("sourceSheetName is: " + sourceSheetName); // April20
+  Logger.log("targetStartRow is: " + startTargetRow);    // 5
+  Logger.log("sourceOfRatesCol is: " + sourceOfRatesCol);  // "P"
+  Logger.log("arrSizeSourceCol is: " + arrSizeSourceCol);  // 
+  
+  //  var sourcPC = sourceSheet.getRange(startSourceRow, startSourceCol, numRows, 1).getValues(); // A + E1
+  //  var sourcRange = sourceSheet.getRange(startSourceRow, startSourceCol, numRows, numColumns).getValues();
+  
+  for (var i = 0;i< arrSizeSourceCol;i++) {
+    var sColName = startSourceCol[i];
+     Logger.log("sColName is: " + sColName); 
+    for (var irow = 0;irow<= 1;irow++) {
+      
+      targetsheet.getRange(sColName + sheetrow).setValue(allcurrentdata[cnt][2]);
+      var sourcRange = sourceSheet.getRange("A5:A30", "C5:C30", "F5:F30").getValues();   // , "C5:C30", "F5:F30"
+    }
+  }
+  Logger.log("sourcRange is: [2][1]" + sourcRange[0][1]);
+  
+//  var targetRangeToInsert = targetSheet.getRange(startTargetRow, startTargetCol, numRows, numColumns).setValues(sourcRange); 
+
+}
+
+function copyValidations(sheetName, rowFrom, rowTo, column, numColumns) {
+ /* Copy validations of all cells in rowFrom to cells in rowTo, starting at column.\*/
+
+  var sh = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = sh.getSheetByName(sheetName);
+
+  for (var i = column;i<= column + numColumns;i++) {
+    var cellFrom = ss.getRange(rowFrom, i);
+    var cellTo = ss.getRange(rowTo, i);
+    copyCellDataValidation(cellFrom, cellTo); 
+  }
+}
+
+function add_dinamic_stats() {
+  // sometime it gets either ERRORS or "0" . Trace it. if such behaviour will repeat probably need to change 
+  // 1 - trigger set to " every 6 or 8 hours" and ad the condition checker to that function 
+  // ( if cell.value is not a number than run the function or check the value of source cells)
+  
+   // "#ERROR!" , "#NUM!" , "#NAME?" , "#N/A"
+  
+  var sourcesheetName = 'Calculations'; 
+  var targetsheetName = "DynamicStats";
+  
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sourcesheet = ss.getSheetByName(sourcesheetName); 
+  var targetsheet = ss.getSheetByName(targetsheetName);
+  
+  var allcurrentdata = sourcesheet.getRange("W2:AA13").getValues();
+  
+  //  var currdate_row = 12;
+  var dates = targetsheet.getRange("A2:A").getValues();
+  var new_now = new Date;
+  var now = new Date(new_now.getTime());
+  
+  for(var row=0; row<dates.length; ++row) {
+    if(dates[row][0].getDate() == now.getDate() && dates[row][0].getMonth() == now.getMonth() && dates[row][0].getYear() == now.getYear()) {
+//    if(dates[row][0].getDate() == now.getDate()) {
+      // set the active row to the current date position
+      break;
+    }
+  }
+//  Logger.log("row is: " + row);
+  
+  var sheetrow = (row + 2).toString();
+  var col_names = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O"];  
+  //B var available_rate = allcurrentdata[0][0] = 'Available       allcurrentdata[0][2] = AU$
+  //C     allcurrentdata[1][0] = 'Moving Out                       allcurrentdata[1][2] = AU$
+  //D     allcurrentdata[2][0] = 'Occupied  
+  //E     allcurrentdata[3][0] = 'Lease Extension
+  //F var mo_rate = allcurrentdata[4][0] = 'Looking for Replacement
+  //G     allcurrentdata[5][0] = 'Renovation
+  //H     allcurrentdata[6][0] = '
+  //I     allcurrentdata[7][0] = '  
+    
+  //  Logger.log("row is: " + row);
+  var varAU = '';
+  
+  for(var cnt=0; cnt<8; ++cnt) {
+    varAU = allcurrentdata[cnt][2];
+    // possible errors "#ERROR!" , "#NUM!" , "#NAME?" , "#N/A"
+    if (varAU.toString().indexOf("#") < 0) {
+      targetsheet.getRange(col_names[cnt+1] + sheetrow).setValue(varAU);
+    }
+  }
+  
+  SetChartsRange_HideRows(targetsheetName, row+2, 12, 32, "A", "K");
+}
+
+
 function addstat() {
+  // "#ERROR!" , "#NUM!" , "#NAME?"
   // sometime it gets either ERRORS or "0" . Trace it. if such behaviour will repeat probably need to change 
   // 1 - trigger set to " every 6 or 8 hours" and ad the condition checker to that function 
   // ( if cell.value is not a number than run the function or check the value of source cells)
@@ -152,58 +352,113 @@ function addstat() {
       
       break;
     }
-    
   }
-  
-  
-//  Logger.log("row is: " + row);
   var sheetrow = (row + 2).toString();
-  SpreadsheetApp.getActive().getSheetByName("AvailStats").getRange("B" + sheetrow).setValue(available_rate);
-  SpreadsheetApp.getActive().getSheetByName("AvailStats").getRange("C" + sheetrow).setValue(mo_rate);
-  
-  SetChartsRange_HideRows(row+2, 30);
+//  Logger.log("available_rate is: " + available_rate + " mo_rate " + mo_rate);
+//  Logger.log("available_rate is: " + available_rate.toString().indexOf("#") );
+//  Logger.log("mo_rate is: " + mo_rate.toString().indexOf("#") );
+  if (available_rate.toString().indexOf("#") < 0 && mo_rate.toString().indexOf("#") < 0) {
+    SpreadsheetApp.getActive().getSheetByName("AvailStats").getRange("B" + sheetrow).setValue(available_rate);
+    SpreadsheetApp.getActive().getSheetByName("AvailStats").getRange("C" + sheetrow).setValue(mo_rate);
+  }
+  SetChartsRange_HideRows("AvailStats", row+2, 5, 35, "A", "D");
 }
 
-function SetChartsRange_HideRows(curdaterow, period) {
-  Logger.log("curdaterow = " + curdaterow.toString() + "  period = " + period.toString() ); 
-  var spreadsheet = SpreadsheetApp.getActive().getSheetByName("AvailStats").activate(); // .getRange("A2:A").getValues();
+function SetChartsRange_HideRows(sname, curdaterow, colpos, period, rangestart, rangeend) {
+//  Logger.log("curdaterow = " + curdaterow.toString() + "  period = " + period.toString() ); 
+  var spreadsheet = SpreadsheetApp.getActive().getSheetByName(sname); //.activate(); // .getRange("A2:A").getValues();
   //spreadsheet.getRange('A2').activate();
 //  var sheet = spreadsheet.getActiveSheet();
   var charts = spreadsheet.getCharts();
   var chart = charts[charts.length - 1];
-  var startrow = curdaterow - period; // Number(curdaterow), parseInt("234",10)
+  var startrow = curdaterow - period;
+//  if (curdaterow > period) {
+//    startrow = curdaterow - period; // Number(curdaterow), parseInt("234",10)
+//  } 
+
   var endrow = curdaterow  ;
   
-// var num = "82144251"; // "82144251"
-//var numAsNumber = Number(num); // prints 82144251
-//typeof num // string
-//typeof numAsNumber // number
+//   Logger.log("startrow is: " + startrow);
   
-  spreadsheet.getRange('2:' + startrow.toString()).activate();
-  spreadsheet.hideRows(spreadsheet.getActiveRange().getRow(), spreadsheet.getActiveRange().getNumRows());
-  spreadsheet.getRange(startrow.toString() + ':' + startrow.toString() ).activate();
+  var rangeToHide = spreadsheet.getRange( '2:' + startrow.toString()); //.activate();
+//  spreadsheet.getRange( 'A1:A' + startrow.toString()).activate();
+//    spreadsheet.getRange( startrow.toString() + ':' + endrow.toString()).activate();
+
+  spreadsheet.hideRows(rangeToHide.getRow(), rangeToHide.getNumRows());
+//  spreadsheet.hideRows(spreadsheet.getActiveRange().getRow(), spreadsheet.getActiveRange().getNumRows());
+//  spreadsheet.getRange(startrow.toString() + ':' + startrow.toString() ); // .activate();
+  var rangeToChart =spreadsheet.getRange(startrow.toString() + ':' + startrow.toString() ); // .activate();
+  var col2name = spreadsheet.getRange('B1');
   
+//  spreadsheet.removeChart(chart);  
+//  chart = spreadsheet.newChart()
+//  .asLineChart()
+//  .addRange(spreadsheet.getRange(rangestart + startrow.toString() + ":" + rangeend + endrow.toString()))
+//  .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
+//  .setTransposeRowsAndColumns(false)
+//  .setNumHeaders(1)
+//  .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
+//  .setOption('bubble.stroke', '#000000')
+//  .setOption('useFirstColumnAsDomain', true)
+//  
+//    
+//    .setOption('domainAxis.direction', 1)
+//
+////  .setOption('series.0.labelInLegend', '$11,692')
+////  .setOption('series.1.labelInLegend', '$1,026')
+////  .setOption('series.2.labelInLegend', '$19,523')
+////  .setOption('series.3.labelInLegend', '$1,786')
+////  .setOption('series.4.labelInLegend', '$4,810')
+////  .setOption('series.5.labelInLegend', '$314')
+////  .setOption('series.6.labelInLegend', '$0')
+//  
+//  .setOption('height', 471)
+//  .setOption('width', 756)
+//  .setPosition(startrow, colpos, 32, 0)
+//  .build();
+  
+
   spreadsheet.removeChart(chart);
-  chart = spreadsheet.newChart()
-  .asLineChart()
-  .addRange(spreadsheet.getRange("A" + startrow.toString() + ":D" + endrow.toString()))
-  .setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS)
-  .setTransposeRowsAndColumns(false)
-  .setNumHeaders(1)
-  .setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH)
-  .setOption('bubble.stroke', '#000000')
-  .setOption('useFirstColumnAsDomain', true)
-  .setOption('height', 471)
-  .setOption('width', 756)
-  .setPosition(startrow, 5, 32, 0)
-  .build();
-  spreadsheet.insertChart(chart);
+  chart = spreadsheet.newChart();
+  chart.asLineChart();
+  chart.addRange(spreadsheet.getRange(rangestart + startrow.toString() + ":" + rangeend + endrow.toString()));
+  chart.setMergeStrategy(Charts.ChartMergeStrategy.MERGE_COLUMNS);
+  chart.setTransposeRowsAndColumns(false);
+  chart.setNumHeaders(1);
+  chart.setHiddenDimensionStrategy(Charts.ChartHiddenDimensionStrategy.IGNORE_BOTH);
+  chart.setOption('bubble.stroke', '#000000');
+  chart.setOption('useFirstColumnAsDomain', true);
+  chart.setOption('domainAxis.direction', 1);
+//  .setOption('series.0.labelInLegend', '$11,692')
+//  .setOption('series.1.labelInLegend', '$1,026')
+//  .setOption('series.2.labelInLegend', '$19,523')
+//  .setOption('series.3.labelInLegend', '$1,786')
+//  .setOption('series.4.labelInLegend', '$4,810')
+//  .setOption('series.5.labelInLegend', '$314')
+//  .setOption('series.6.labelInLegend', '$0')
+  chart.setOption('height', 471);
+  chart.setOption('width', 756);
+  chart.setPosition(startrow, colpos, 32, 0);
+//  chart.build();
+//  
+  var headerdata = spreadsheet.getRange(rangestart +  "1:" + rangeend + "1").getValues();
+  var headerSize = headerdata[0].length;
+  Logger.log("headerSize = " + headerSize.toString()); 
+  var varColName = '';
+  var varSeriesName = '';
+  
+  for(var cnt=1; cnt<headerSize; ++cnt) {
+    varColName = headerdata[0][cnt];
+    varSeriesName = 'series.' + (cnt - 1).toString() + '.labelInLegend';
+    chart.setOption(varSeriesName, varColName);
+  }
+  
+//  //chart.build();
+  
+  spreadsheet.insertChart(chart.build());
+//    spreadsheet.insertChart(chart);
 
-//  spreadsheet.setCurrentCell(spreadsheet.getRange('A47'));
-  //TypeError: Cannot find function getActiveSheet in object Sheet. (line 186, file "GTAds")
-
-
-};
+}
 
 function rrunit(pc) {
   var pc_found = false;
@@ -445,12 +700,23 @@ function update_allnotes() {
   }
 }
 
+function createNewRateSheet() {
+//  1. Rates/Add/Availabiltiy/Stats
+//  https://docs.google.com/spreadsheets/d/1WUU4pvanWH5_iSUY2hPyXLfrTyR22MAHkDhRxSl5KTg/edit#gid=515246521
+  var spreadsheet = SpreadsheetApp.getActive();
+  spreadsheet.getRange('N1').activate();
+  spreadsheet.setActiveSheet(spreadsheet.getSheetByName('UnitStats'), true);
+  spreadsheet.duplicateActiveSheet();
+  spreadsheet.getActiveSheet().setName('new name of UnitStats');
+}
+
+
 function put_ads_on_gumtree() {
   Browser.msgBox("TEST")
 }
 
 function onOpen(e){
-  var menuItems = [{name: "Update Notes Desc", functionName: "update_allnotes"}];
+  var menuItems = [{name: "Update Notes Desc", functionName: "update_allnotes"}, {name: "Facebook Data Colorizer", functionName: "facebook_date_colorizer"}, {name: "Update Availability Statistics", functionName: "addstat"}, {name: "Update Dinamic Stats", functionName: "add_dinamic_stats"}];
   SpreadsheetApp.getActive().addMenu("ELM Menu", menuItems);
   update_allnotes();
   addstat();
@@ -459,3 +725,23 @@ function onOpen(e){
 //function onEdit(e){
 //}
 
+//function onOpen(e){
+//  //var checkTabColor=setSheetTabColor();
+//  // Add a custom menu to the active spreadsheet, including a separator and a sub-menu.
+//  SpreadsheetApp.getUi()
+//  .createMenu('<ELM>')
+//  .addItem('Create new as_at_for document (according Settings page)', 'create_as_at_for')
+//  .addSeparator()
+////  .addItem('Create MYOB-file', '--importDataForMYOB_and_MoveToArchive')
+//  .addSeparator()
+//  //.addItem('Move schedules to archive', 'moveFilesToArchive')
+//  .addSeparator()
+//  .addSubMenu(SpreadsheetApp.getUi().createMenu('Miscellaneous...')
+////              .addItem('Put color code into colored celles', 'putValueToColoredCell')
+////              .addItem('Clear weeks sheets', 'ClearRange')
+//              .addItem('Set tabs color', 'setSheetTabColor')
+//              .addSeparator()
+////              .addItem('test---save/download file', 'doGet')              
+//             )
+//  .addToUi();
+//  }
